@@ -1,5 +1,6 @@
 package sh.calaba.instrumentationbackend;
 
+import java.io.File;
 import java.lang.reflect.Method;
 
 import sh.calaba.instrumentationbackend.actions.HttpServer;
@@ -7,25 +8,34 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.test.InstrumentationTestRunner;
+import android.util.Log;
 
 public class CalabashInstrumentationTestRunner extends InstrumentationTestRunner {
-	@Override
+
+    public static final String COVERAGE_DUMPFILE = "/calabash-coverage.ec";
+
+    @Override
     public void onCreate(Bundle arguments) {
-		try {
-			Context context = getTargetContext ();
-			Class<?> c = Class.forName("mono.MonoPackageManager");
-			Method  method = c.getDeclaredMethod ("LoadApplication", Context.class, String.class, String[].class);
-			method.invoke (null, context, null, new String[]{context.getApplicationInfo ().sourceDir});
-			System.out.println("Calabash loaded Mono");
-		} catch (Exception e) {
-			System.out.println("Calabash did not load Mono. This is only a problem if you are trying to test a Mono application");
-		}
+        Log.d(CalabashInstrumentationTestRunner.class.getName(),"entering onCreate");
+	try {
+	    Context context = getTargetContext ();
+	    Class<?> c = Class.forName("mono.MonoPackageManager");
+	    Method  method = c.getDeclaredMethod ("LoadApplication", Context.class, String.class, String[].class);
+	    method.invoke (null, context, null, new String[]{context.getApplicationInfo ().sourceDir});
+	    System.out.println("Calabash loaded Mono");
+	} catch (Exception e) {
+	    System.out.println("Calabash did not load Mono. This is only a problem if you are trying to test a Mono application");
+	}
 
         // Start the HttpServer as soon as possible in a not-ready state
         HttpServer.instantiate(Integer.parseInt(arguments.getString("test_server_port")));
 
         InstrumentationBackend.testPackage = arguments.getString("target_package");
         InstrumentationBackend.extras = arguments;
+        InstrumentationBackend.coverageDumpFile =
+                new File(getTargetContext().getFilesDir().getAbsolutePath()
+                + COVERAGE_DUMPFILE);
+
 
         try {
             InstrumentationBackend.mainActivity = Class.forName(arguments.getString("main_activity")).asSubclass(Activity.class);
@@ -35,5 +45,7 @@ public class CalabashInstrumentationTestRunner extends InstrumentationTestRunner
 
         super.onCreate(arguments);
 
-	}	
+    }
+
+
 }

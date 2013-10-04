@@ -90,6 +90,7 @@ module Operations
   end
 
   def start_test_server_in_background(options={})
+    puts "start_test_server_in_background"
     default_device.start_test_server_in_background(options)
   end
 
@@ -185,6 +186,17 @@ module Operations
     puts "(Hooks are stored in features/support)"
   end
 
+  def say_bye ()
+    puts ("BYE BYE")
+  end
+
+  def fetch_coverage_data
+    coverage_file = ENV["COVERAGE_OUTPUT_FILE"] || "feature_coverage.ec"
+    pull_cmd = "#{default_device.adb_command} pull /data/data/#{package_name(@app_path)}/files/coverage.ec #{coverage_file}"
+    log (pull_cmd)
+    `#{pull_cmd}`
+  end
+
   class Device
     attr_reader :app_path, :test_server_path, :serial, :server_port, :test_server_port
 
@@ -201,6 +213,7 @@ module Operations
       log forward_cmd
       log `#{forward_cmd}`
     end
+
 
     def reinstall_apps()
       uninstall_app(package_name(@app_path))
@@ -552,6 +565,7 @@ module Operations
     end
 
     def shutdown_test_server
+      log "shutdown_test_server"
       begin
         http("/kill")
         Timeout::timeout(3) do

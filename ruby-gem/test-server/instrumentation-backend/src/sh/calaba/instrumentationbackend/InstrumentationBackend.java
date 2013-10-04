@@ -16,6 +16,9 @@ import android.util.Log;
 import com.jayway.android.robotium.solo.PublicViewFetcher;
 import com.jayway.android.robotium.solo.SoloEnhanced;
 
+import java.io.File;
+import java.lang.reflect.Method;
+
 public class InstrumentationBackend extends ActivityInstrumentationTestCase2<Activity> {
     public static String testPackage;
     public static Class<? extends Activity> mainActivity;
@@ -27,6 +30,7 @@ public class InstrumentationBackend extends ActivityInstrumentationTestCase2<Act
     public static SoloEnhanced solo;
     public static PublicViewFetcher viewFetcher;
     public static Actions actions;
+    public static File coverageDumpFile;
 
     @SuppressWarnings({ "deprecation", "unchecked" })
     public InstrumentationBackend() {
@@ -35,6 +39,7 @@ public class InstrumentationBackend extends ActivityInstrumentationTestCase2<Act
 
     @Override
     protected void setUp() throws Exception {
+        log("entering setUp");
         super.setUp();
         Intent i = new Intent();
         i.setClassName(testPackage, mainActivity.getName());
@@ -50,15 +55,18 @@ public class InstrumentationBackend extends ActivityInstrumentationTestCase2<Act
      * Here to have JUnit3 start the instrumentationBackend
      */
     public void testHook() throws Exception {
+        log("entering testHook");
         HttpServer httpServer = HttpServer.getInstance();
         httpServer.setReady();
         httpServer.waitUntilShutdown();
         solo.finishOpenedActivities();
-        System.exit(0);
+        doEmma();
+       // System.exit(0);
     }
 
     @Override
     public void tearDown() throws Exception {
+        log("entering tearDown");
         HttpServer httpServer = HttpServer.getInstance();
         httpServer.stop();
 
@@ -82,6 +90,23 @@ public class InstrumentationBackend extends ActivityInstrumentationTestCase2<Act
 
     public static void logError(String message) {
         Log.e(TAG, message);
+    }
+
+    private void doEmma() {
+        log("entering doEmma");
+        log("emma coverage file is " + coverageDumpFile);
+        try {
+            Class emmaRTClass = Class.forName("com.vladium.emma.rt.RT");
+            Method dumpCoverageMethod = emmaRTClass.getMethod("dumpCoverageData",
+                    coverageDumpFile.getClass(), boolean.class, boolean.class);
+
+            dumpCoverageMethod.invoke(null, coverageDumpFile, true, false);
+            log("emma coverage Appears we wrote the coverage file to " + coverageDumpFile.toString());
+        } catch (Exception e ) {
+            logError("emma coverage exception" + e.getMessage());
+            e.printStackTrace();
+        }
+        coverageDumpFile.setReadable(true,false);
     }
 
     private void removeTestLocationProviders(Activity activity) {
